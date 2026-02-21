@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diklat Otomotif STN - Dashboard Peserta</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 30px;
+        }
+        .logo h1 {
+            font-size: 28px;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .user-info {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .hero h2 {
+            font-size: 36px;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 18px;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+        .module {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 25px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .module:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.12);
+        }
+        .module h3 {
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        .module ul {
+            padding-left: 20px;
+        }
+        .module li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .actions {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0 10px;
+            transition: opacity 0.3s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #00f2fe;
+            color: #00f2fe;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.7;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        @media (max-width: 768px) {
+            .modules {
+                grid-template-columns: 1fr;
+            }
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>🔧 Diklat Otomotif STN</h1>
+            </div>
+            <div class="user-info">
+                Selamat datang, <strong>{{ peserta.nama }}</strong>!<br>
+                Batch: {{ peserta.batch }}
+            </div>
+        </header>
+
+        <div class="hero">
+            <h2>Master Diagnosa & Perbaikan Kendaraan Modern</h2>
+            <p>
+                Pelajari teknologi terkini: Datastream ECU, Sistem Injeksi Pintar, 
+                Diagnosa Listrik Kompleks, dan Strategi Perbaikan untuk Mobil Modern 
+                (Honda I-DSI, VTEC, Toyota Hybrid, Mitsubishi MIVEC, dan lainnya).
+            </p>
+        </div>
+
+
+
+        <div class="modules" style="margin-top: 20px;">
+            <div class="module">
+                <h3>👤 Informasi Peserta</h3>
+                <ul>
+                    <li><strong>Nama:</strong> {{ peserta.nama }}</li>
+                    <li><strong>Batch:</strong> {{ peserta.batch }}</li>
+                    <li><strong>Status Pembayaran:</strong> {{ peserta.status_pembayaran }}</li>
+                    <li><strong>Akses Workshop:</strong> {{ 'Ya' if peserta.akses_workshop else 'Tidak' }}</li>
+                    <li><strong>Akses Dokumen Bengkel:</strong> 
+                        {% if peserta.akses_dokumen_bengkel %}
+                            <span style="color: #4caf50; font-weight: bold;">✓ Ya</span>
+                            {% if peserta.tanggal_izin_dokumen %}
+                                <small style="color: #666;">(sejak {{ peserta.tanggal_izin_dokumen.strftime('%d-%m-%Y') }})</small>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #f44336; font-weight: bold;">✗ Tidak</span>
+                        {% endif %}
+                    </li>
+                    {% if peserta.payment_proof %}
+                        <li><strong>Bukti Transfer:</strong> {{ peserta.payment_proof }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="module">
+                <h3>🗓 Pengingat Jadwal Mingguan</h3>
+                <ul>
+                    {% for item in weekly_schedule %}
+                        <li>{{ item.day }} — {{ item.time }} — {{ item.topic }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="module">
+                <h3>📚 Kategori</h3>
+                <ul>
+                    {% for cat in categories %}
+                        <li>
+                            {% if peserta.akses_workshop or peserta.akses_dokumen_bengkel %}
+                                <a href="/documents?category={{ cat }}" style="color: #fff">{{ cat }}</a>
+                            {% else %}
+                                {{ cat }}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="modules">
+            <div class="module">
+                <h3>💳 Konfirmasi Pembayaran</h3>
+                <p>Unggah bukti transfer (png/jpg/pdf). Status akan menjadi <em>Menunggu</em>.</p>
+                <form action="/dashboard/upload-payment" method="POST" enctype="multipart/form-data">
+                    <input type="file" name="proof" accept="image/*,.pdf" required><br><br>
+                    <button type="submit" class="btn">Unggah Bukti</button>
+                </form>
+            </div>
+
+            <div class="module">
+                <h3>⚙️ Profil & Pengaturan</h3>
+                <p><a href="/dashboard/profile" class="btn btn-outline">Edit Profil</a></p>
+                <h4>Ganti Password</h4>
+                <form action="/dashboard/change-password" method="POST">
+                    <input type="password" name="current_password" placeholder="Password sekarang" required><br><br>
+                    <input type="password" name="new_password" placeholder="Password baru" required><br><br>
+                    <input type="password" name="confirm_password" placeholder="Konfirmasi password" required><br><br>
+                    <button type="submit" class="btn">Ganti Password</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="actions">
+            {% if peserta.akses_dokumen_bengkel %}
+                <a href="/documents" class="btn">📁 Dokumen Bengkel</a>
+            {% else %}
+                <button disabled class="btn" style="opacity: 0.5; cursor: not-allowed;" title="Hubungi admin untuk mendapatkan akses">📁 Dokumen Bengkel (Akses Terbatas)</button>
+            {% endif %}
+            <a href="/logout" class="btn btn-outline">🚪 Logout</a>
+        </div>
+
+        <footer>
+            <p>Diklat Otomotif STN • Hanya untuk Peserta Terdaftar</p>
+        </footer>
+    </div>
+</body>
+</html>
