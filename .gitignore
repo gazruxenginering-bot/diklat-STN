@@ -1,5 +1,7 @@
 # Environment
 venv/
+.venv/
+.venv-1/
 .env
 .env.local
 .env.production
@@ -10,6 +12,10 @@ database/users.db
 database/*.db
 database/*.sqlite
 database/*.sqlite3
+
+# Vector Database
+chroma_data/
+*.sqlite3
 
 # Cache
 __pycache__/

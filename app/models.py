@@ -115,3 +115,58 @@ class GoogleDriveFile(db.Model):
     last_synced = db.Column(db.DateTime, default=datetime.utcnow)
     web_view_link = db.Column(db.String(1024))
     download_link = db.Column(db.String(1024))
+
+class ChromaDocument(db.Model):
+    __tablename__ = 'chroma_document'
+    id = db.Column(db.Integer, primary_key=True)
+    file_id = db.Column(db.Integer, db.ForeignKey('google_drive_file.id'), nullable=False)
+    file = db.relationship('GoogleDriveFile', backref='chroma_indexes')
+    drive_id = db.Column(db.String(255), nullable=False)  # For quick lookup
+    file_name = db.Column(db.String(255), nullable=False)
+    chunk_count = db.Column(db.Integer, default=0)
+    indexed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    status = db.Column(db.String(20), default='indexed')  # 'indexed', 'pending', 'failed'
+    error_message = db.Column(db.Text, nullable=True)
+    
+    def __repr__(self):
+        return f"<ChromaDocument {self.file_name} ({self.chunk_count} chunks)>"
+
+class ChatSession(db.Model):
+    __tablename__ = 'chat_session'
+    id = db.Column(db.Integer, primary_key=True)
+    peserta_id = db.Column(db.Integer, db.ForeignKey('peserta.id'), nullable=False)
+    peserta = db.relationship('Peserta', backref='chat_sessions')
+    title = db.Column(db.String(255), nullable=True)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    messages = db.relationship('ChatMessage', backref='session', cascade='all, delete-orphan')
+
+class ChatMessage(db.Model):
+    __tablename__ = 'chat_message'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id'), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # 'user' atau 'assistant'
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    tokens_used = db.Column(db.Integer, nullable=True)
+    sources = db.relationship('ChatMessageSource', backref='message', cascade='all, delete-orphan')
+
+class ChatMessageSource(db.Model):
+    __tablename__ = 'chat_message_source'
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'), nullable=False)
+    file_id = db.Column(db.Integer, db.ForeignKey('google_drive_file.id'), nullable=True)
+    file_name = db.Column(db.String(255), nullable=False)
+    relevance_score = db.Column(db.Float, default=0.0)
+
+class ChatFeedback(db.Model):
+    __tablename__ = 'chat_feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'), nullable=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id'), nullable=False)
+    peserta_id = db.Column(db.Integer, db.ForeignKey('peserta.id'), nullable=False)
+    rating = db.Column(db.Integer)  # 1-5 stars
+    comment = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

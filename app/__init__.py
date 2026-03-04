@@ -50,9 +50,17 @@ def create_app():
     csrf_enabled = os.getenv('WTF_CSRF_ENABLED', 'True').lower() != 'false'
     app.config['WTF_CSRF_ENABLED'] = csrf_enabled
     app.config['WTF_CSRF_TIME_LIMIT'] = None  # CSRF tokens tidak kadaluarsa
+    app.config['WTF_CSRF_SSL_STRICT'] = False  # Disable strict SSL check for dev/GitHub Codespace
+    # Allow GitHub Codespace and localhost origins for CSRF
+    app.config['WTF_CSRF_TRUSTED_HOSTS'] = [
+        '127.0.0.1',
+        'localhost',
+        '*.app.github.dev',  # GitHub Codespace URLs
+        '*.github.dev',      # GitHub Codespace
+    ]
     
     if csrf_enabled:
-        print("✅ CSRF Protection: ENABLED")
+        print("✅ CSRF Protection: ENABLED (with GitHub Codespace support)")
     else:
         print("⚠️  CSRF Protection: DISABLED (Development/Testing only)")
 
@@ -74,23 +82,56 @@ def create_app():
             print(f"Warning: Could not create upload folder: {e}")
 
         db.create_all()
+        
+        # Initialize Chroma Vector Store (Cloud atau Local)
+        try:
+            from .chroma_integration import initialize_vector_store
+            use_cloud = os.getenv('CHROMA_CLOUD', 'true').lower() == 'true'
+            initialize_vector_store(use_cloud=use_cloud)
+            print(f"✅ Chroma initialized ({'Cloud' if use_cloud else 'Local'})")
+        except Exception as e:
+            print(f"⚠️  Could not initialize Chroma: {e}")
+            import traceback
+            traceback.print_exc()
 
-    # CSP Configuration based on environment
+    # Security headers configured for Bootstrap CDN compatibility
     @app.after_request
     def add_security_headers(response):
-        # Use a unified CSP that allows 'unsafe-eval' for development compatibility.
-        csp = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; frame-src https://docs.google.com https://drive.google.com; connect-src 'self' https:;"
-        response.headers['Content-Security-Policy'] = csp
-
-        # Additional security headers
+        # Allow Bootstrap from Bootstrap CDN and Font Awesome from cdnjs/cloudflare
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self' https:; "
+            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+            "frame-src https://docs.google.com https://drive.google.com; "
+            "connect-src 'self' https:;"
+        )
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-XSS-Protection'] = '1; mode=block'
-
         return response
 
     from .routes import main
     app.register_blueprint(main)
+
+    # Register chat routes
+    try:
+        from .routes_chat import register_chat_routes
+        register_chat_routes(app)
+    except Exception as e:
+        print(f"⚠️  Chat routes could not be registered: {e}")
+        import traceback
+        traceback.print_exc()
+
+    # Register admin Chroma routes
+    try:
+        from .routes_admin_chroma import register_admin_chroma_routes
+        register_admin_chroma_routes(app)
+    except Exception as e:
+        print(f"⚠️  Admin Chroma routes could not be registered: {e}")
+        import traceback
+        traceback.print_exc()
 
     # Error handler untuk CSRF errors
     @app.errorhandler(400)
