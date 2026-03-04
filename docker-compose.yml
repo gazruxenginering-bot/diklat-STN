@@ -6,9 +6,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - FLASK_ENV=production
+      - FLASK_ENV=development
       - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - FLASK_DEBUG=1
     volumes:
+      - .:/app
       - ./database:/app/database
       - ./instance:/app/instance
     restart: unless-stopped

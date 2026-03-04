@@ -30,6 +30,12 @@ def create_app():
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+    # Template configuration for development
+    if is_development:
+        app.config['TEMPLATES_AUTO_RELOAD'] = True
+        app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+        app.jinja_env.auto_reload = True
+
     # Database configuration
     db_path = os.path.join(os.path.dirname(__file__), '..', 'database', 'users.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
