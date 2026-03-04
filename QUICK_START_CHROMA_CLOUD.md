@@ -1,26 +1,27 @@
 # 🎯 Chroma Cloud Configuration - Quick Reference
 
-## ✅ Your Setup
+## ⚠️ SECURITY: Credentials Stored in .env Only
 
+**⚠️ IMPORTANT:** API Keys and sensitive data must be stored in `.env` file, NOT in repository!
+
+See [.env.example](.env.example) for required environment variables:
+
+```bash
+# Copy and fill in your own credentials
+cp .env.example .env
+
+# Then edit .env with YOUR actual credentials:
+# - GEMINI_API_KEY
+# - CHROMA_API_KEY
+# - CHROMA_TENANT
+# - etc.
 ```
-Gemini API
-├── API Key: AIzaSyBnOam5Cak2qYnV3tZ5b67q_yIJdQUcxeY
-└── Status: ✓ Ready
 
-Google Drive Folders
-├── EBOOKS: 12ffd7GqHAiy3J62Vu65LbVt6-ultog5Z
-├── Pengetahuan: 1Y2SLCbyHoB53BaQTTwRta2T6dv_drRll
-├── Service_Manual_1: 1CHz8UWZXfJtXlcjp9-FPAo-t_KkfTztW
-└── Service_Manual_2: 1_SsZ7SkaZxvXUZ6RUAA_o7WR_GAtgEwT
-   └── Status: ✓ Configured in app/documents_handler.py
+Required Services:
+- ✅ Google Gemini API (enabled)
+- ✅ Google Drive API (4 folders configured)
+- ✅ Chroma Cloud (api.trychroma.com)
 
-Chroma Cloud
-├── Host: api.trychroma.com
-├── Database: DIKLAT-STN
-├── Tenant: 5926624f-3d5b-4c04-875f-66d530572b0a
-├── API Key: ck-4XMkqE5Wi5DfzQEkcso6N8RSf1PtewXD5wU4UBXTn81n
-└── Dashboard: https://www.trychroma.com/gazruxenginering/aws-us-east-1/DIKLAT-STN/source
-   └── Status: ✓ Cloud account active
 ```
 
 ---
@@ -151,24 +152,34 @@ curl -X DELETE 'http://localhost:8000/api/admin/chroma/delete-file/123' \
 
 ## 📊 Environment Variables (.env)
 
+**NEVER commit `.env` file to git!** It's in `.gitignore` for security.
+
+Create `.env` file from `.env.example`:
+
 ```bash
-# Flask
+cp .env.example .env
+```
+
+Then edit `.env` and fill in YOUR credentials:
+
+```bash
+# Flask Configuration
 FLASK_ENV=development
 FLASK_APP=run.py
-SECRET_KEY=a-stable-secret-key-here
+SECRET_KEY=your-secret-key-change-in-production
 
-# Gemini API
-GEMINI_API_KEY=AIzaSyBnOam5Cak2qYnV3tZ5b67q_yIJdQUcxeY
+# Gemini API - Get from https://ai.google.dev/
+GEMINI_API_KEY=your-api-key-here
 
-# Chroma Cloud
+# Chroma Cloud - Get from https://www.trychroma.com/
 CHROMA_CLOUD=true
 CHROMA_HOST=api.trychroma.com
-CHROMA_API_KEY=ck-4XMkqE5Wi5DfzQEkcso6N8RSf1PtewXD5wU4UBXTn81n
-CHROMA_TENANT=5926624f-3d5b-4c04-875f-66d530572b0a
-CHROMA_DATABASE=DIKLAT-STN
+CHROMA_API_KEY=your-chroma-api-key-here
+CHROMA_TENANT=your-tenant-id-here
+CHROMA_DATABASE=your-database-name-here
 
-# Admin
-ADMIN_API_KEY=your-admin-key-here
+# Admin Key - Change this!
+ADMIN_API_KEY=change-this-admin-key
 
 # Database
 DATABASE_URL=sqlite:///database/users.db
