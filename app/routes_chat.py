@@ -22,8 +22,6 @@ def initialize_chat_system():
     global _system_state
     
     try:
-        # SKIP Gemini (free tier v1beta API tidak support)
-        
         # Initialize Groq as PRIMARY AI (RECOMMENDED: proven working)
         groq_manager = GroqChatManager()
         print(f"✅ Groq Manager created. Initialized: {groq_manager.initialized}")
@@ -33,7 +31,9 @@ def initialize_chat_system():
         chroma_engine = ChromaDocumentSearch(credentials_path)
         
         # Store in global state
-        _system_state['fallback_chat_manager'] = groq_manager
+        # Groq is PRIMARY AI provider (not fallback)
+        _system_state['chat_manager'] = groq_manager
+        _system_state['fallback_chat_manager'] = groq_manager  # Same as primary for now
         _system_state['search_engine'] = chroma_engine
         
         # Status
