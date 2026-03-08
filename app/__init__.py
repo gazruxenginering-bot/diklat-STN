@@ -70,7 +70,22 @@ def create_app():
     else:
         print("⚠️  CSRF Protection: DISABLED (Development/Testing only)")
 
-    csrf = CSRFProtect(app)
+    # Custom CSRF protection that allows API key exemption
+    class FlexibleCSRFProtect(CSRFProtect):
+        """CSRF Protection with API key exemption"""
+        def protect(self):
+            from .security import is_csrf_exempted
+            # Check if request should be exempt
+            if is_csrf_exempted():
+                return  # Skip CSRF validation
+            # Otherwise, use default CSRF protection
+            return super().protect()
+    
+    csrf = FlexibleCSRFProtect(app)
+    
+    # Export csrf object for use in blueprint decorators
+    app.csrf = csrf
+
 
     # Rate limiting
     from .security import init_limiter
@@ -144,6 +159,13 @@ def create_app():
     def handle_csrf_error(e):
         # Cek apakah error dari CSRF
         if 'CSRF' in str(e):
+            # Check if it's an API request with valid API key
+            from .security import is_csrf_exempted
+            if is_csrf_exempted():
+                # Allow API requests with valid key - need to re-process the request
+                # For now, return error but in production, could use csrf.exempt() for specific routes
+                pass
+            
             return f"""
             <!DOCTYPE html>
             <html>

@@ -21,11 +21,12 @@ class GeminiChatManager:
         # Priority: 1. Passed argument, 2. credentials.json, 3. Environment variable
         self.api_key = api_key or self._get_api_key_from_credentials() or os.getenv('GEMINI_API_KEY')
         
-        # Model priority list - akan try satu per satu
+        # Model priority list - akan try satu per satu (urutan penting!)
+        # gemini-pro adalah yang most stable dan free-tier friendly
         self.available_models = [
-            "gemini-1.5-flash",      # Preferred
-            "gemini-1.5-pro",        # Alternative 1
-            "gemini-pro",            # Fallback (stable)
+            "gemini-pro",            # Most stable & widely available (priority)
+            "gemini-1.5-pro",        # Newer, but may require paid account
+            "gemini-1.5-flash",      # Newer flash model
         ]
         
         self.model_name = None  # Will be set on first use

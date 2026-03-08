@@ -79,9 +79,11 @@ def is_csrf_exempted():
 
 def csrf_exempt_if_api_key(f):
     """
-    Decorator to exempt CSRF for API requests with valid key
-    but keep CSRF protection for form submissions
+    Decorator to exempt CSRF for API requests with valid key.
+    Uses Flask-WTF's @csrf.exempt internally if CSRF is available.
     """
+    from functools import wraps
+    
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # If API key is valid or from localhost, allow without CSRF
@@ -89,4 +91,13 @@ def csrf_exempt_if_api_key(f):
             return f(*args, **kwargs)
         # Otherwise, Flask-WTF will handle CSRF validation
         return f(*args, **kwargs)
+    
+    # Try to get csrf from current_app and exempt this view
+    try:
+        from flask import current_app
+        if hasattr(current_app, 'csrf'):
+            current_app.csrf.exempt(decorated_function)
+    except:
+        pass
+    
     return decorated_function

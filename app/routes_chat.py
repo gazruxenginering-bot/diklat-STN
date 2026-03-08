@@ -6,27 +6,44 @@ from flask import Blueprint, request, jsonify, render_template, session
 from functools import wraps
 from datetime import datetime
 from .smart_search import ChromaDocumentSearch
-from .gemini_integration import GeminiChatManager, ChatHistory
+from .groq_integration import GroqChatManager  # Primary AI provider (Gemini free tier API not available)
 from .models import db, ChatSession, ChatMessage, ChatMessageSource, ChatFeedback
 import os
 
-# Global instances
-chat_manager = None
-search_engine = None
+# Global instances - using dictionary to avoid scoping issues
+_system_state = {
+    'chat_manager': None,
+    'fallback_chat_manager': None,  # Groq is primary AI
+    'search_engine': None
+}
 
 def initialize_chat_system():
-    """Initialize chat system components dengan Chroma"""
-    global chat_manager, search_engine
+    """Initialize chat system dengan Groq (PRIMARY) dan Chroma"""
+    global _system_state
     
     try:
-        # Initialize Gemini (akan auto-load dari credentials.json jika env var tidak ada)
-        chat_manager = GeminiChatManager()  
+        # SKIP Gemini (free tier v1beta API tidak support)
+        
+        # Initialize Groq as PRIMARY AI (RECOMMENDED: proven working)
+        groq_manager = GroqChatManager()
+        print(f"✅ Groq Manager created. Initialized: {groq_manager.initialized}")
         
         # Initialize Chroma-based search engine
         credentials_path = os.path.join(os.path.dirname(__file__), '..', 'credentials.json')
-        search_engine = ChromaDocumentSearch(credentials_path)
+        chroma_engine = ChromaDocumentSearch(credentials_path)
         
-        print("✅ Chat system initialized dengan Chroma Vector Database")
+        # Store in global state
+        _system_state['fallback_chat_manager'] = groq_manager
+        _system_state['search_engine'] = chroma_engine
+        
+        # Status
+        groq_ok = groq_manager.initialized
+        
+        print(f"✅ Chat system initialized")
+        print(f"   AI Provider (Groq PRIMARY): {'✅' if groq_ok else '❌'}")
+        print(f"   Vector DB (Chroma): ✅")
+        print(f"   System state updated successfully")
+        
     except Exception as e:
         print(f"❌ Error initializing chat system: {e}")
         import traceback
@@ -64,10 +81,11 @@ chat = Blueprint('chat', __name__, url_prefix='/api/chat')
 @chat.route('/health', methods=['GET'])
 def chat_health():
     """Check chat system health"""
+    groq_mgr = _system_state.get('fallback_chat_manager')
     return jsonify({
         'status': 'ok',
-        'gemini_available': chat_manager.check_api_availability() if chat_manager else False,
-        'search_available': search_engine is not None
+        'groq_available': groq_mgr.initialized if groq_mgr else False,
+        'search_available': _system_state['search_engine'] is not None
     })
 
 
@@ -114,6 +132,7 @@ def ask_question():
         context = ""
         sources = []
         
+        search_engine = _system_state.get('search_engine')
         if use_documents and search_engine:
             try:
                 search_results = search_engine.search(
@@ -136,19 +155,42 @@ def ask_question():
             except Exception as e:
                 print(f"⚠️  Error searching documents in Chroma: {e}")
         
-        # Generate answer dengan Gemini
-        if chat_manager:
-            result = chat_manager.generate_answer_with_rag(
-                query=question,
-                document_context=context,
-                document_sources=sources
-            )
+        # Generate answer dengan Groq (ONLY AI provider)
+        # Groq: FREE tier dengan 1000 req/hari, super cepat, reliable
+        result = {'success': False, 'error': 'Groq AI provider not available'}
+        
+        # Get Groq manager from system state
+        groq_manager = _system_state.get('fallback_chat_manager')
+        
+        # Use Groq ONLY (Gemini free tier tidak support v1beta API)
+        if groq_manager and groq_manager.initialized:
+            try:
+                print(f"🚀 Using Groq AI for response...")
+                result = groq_manager.generate_answer(
+                    query=question,
+                    context=context
+                )
+                if result['success']:
+                    print(f"✅ Groq response generated successfully")
+            except Exception as e:
+                print(f"❌ Groq error: {e}")
+                result = {'success': False, 'error': f'Groq API error: {str(e)[:100]}'}
         else:
-            result = {
+            print(f"❌ Groq chat manager not initialized! State: {_system_state}")
+            return jsonify({
                 'success': False,
-                'error': 'Gemini API tidak tersedia',
+                'error': 'AI provider not initialized. Please restart the application.',
                 'answer': None
-            }
+            }), 500
+        
+        # If Groq fails, return error (no fallback to Gemini)
+        if not result.get('success'):
+            error_msg = result.get('error', 'Groq API error')
+            return jsonify({
+                'success': False,
+                'error': error_msg,
+                'answer': None
+            }), 500
         
         # Save assistant message to database
         if result['success']:
@@ -280,6 +322,7 @@ def clear_history():
 def get_chat_stats():
     """Get Chroma vector database statistics"""
     try:
+        search_engine = _system_state.get('search_engine')
         if not search_engine:
             return jsonify({'error': 'Search engine not available'}), 503
         
@@ -314,6 +357,7 @@ def search_documents():
         if not query:
             return jsonify({'error': 'Query tidak boleh kosong'}), 400
         
+        search_engine = _system_state.get('search_engine')
         if not search_engine:
             return jsonify({'error': 'Search engine tidak tersedia'}), 503
         

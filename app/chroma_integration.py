@@ -92,10 +92,9 @@ class ChromaVectorStore:
                 api_key=self.cloud_api_key
             )
             
-            # Get database reference
-            self.db = self.client.get_or_create_database(
-                name=self.cloud_database
-            )
+            # In newer chromadb versions, use client directly
+            # The database context is handled by the client
+            self.db = self.client
             
             print(f"✅ Chroma Cloud connected")
             print(f"   API Key: {self.cloud_api_key[:20]}...")
@@ -149,11 +148,14 @@ class ChromaVectorStore:
         
         try:
             if self.use_cloud:
-                # Cloud: use database reference
-                collection = self.db.get_or_create_collection(
-                    name=collection_name,
-                    metadata={"hnsw:space": "cosine"}
-                )
+                # Cloud: use client directly
+                try:
+                    collection = self.client.get_collection(name=collection_name)
+                except:
+                    collection = self.client.create_collection(
+                        name=collection_name,
+                        metadata={"hnsw:space": "cosine"}
+                    )
             else:
                 # Local: use client directly with new API
                 try:

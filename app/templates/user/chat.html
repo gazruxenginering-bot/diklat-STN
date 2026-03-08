@@ -16,9 +16,8 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 75%, #f5576c 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+            background: linear-gradient(135deg, #1a2a6c 0%, #2a5298 50%, #1e3a8a 100%);
+            background-attachment: fixed;
             min-height: 100vh;
             padding: 20px;
         }
@@ -498,12 +497,17 @@
                 <!-- Header -->
                 <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0"><i class="fas fa-robot"></i> Asisten Teknis AI</h5>
-                            <small>💡 Tanya apapun tentang sistem kendaraan, mesin, dan perawatan</small>
+                        <div style="flex: 1;">
+                            <h5 class="mb-1"><i class="fas fa-robot"></i> Asisten Teknis AI</h5>
+                            <small style="opacity: 0.9;">🔍 Pencarian Semantik dengan Chroma Cloud | 🤖 AI Gemini</small>
                         </div>
-                        <button class="btn btn-sm btn-warning" onclick="clearChatHistory()" title="Hapus riwayat chat">
-                            <i class="fas fa-trash-alt"></i> Bersihkan
+                        <div class="ms-3">
+                            <span class="badge bg-success" id="chromaStatus" title="Chroma Cloud Vector Database">
+                                <i class="fas fa-database"></i> Chroma Ready
+                            </span>
+                        </div>
+                        <button class="btn btn-sm btn-warning ms-2" onclick="clearChatHistory()" title="Hapus riwayat chat">
+                            <i class="fas fa-trash-alt"></i> Clear
                         </button>
                     </div>
                 </div>
@@ -630,7 +634,27 @@ function getCsrfToken() {
 document.addEventListener('DOMContentLoaded', function() {
     loadChatHistory();
     loadSuggestedQuestions();
+    checkChromaHealth();
 });
+
+// Check Chroma Vector Database health
+async function checkChromaHealth() {
+    try {
+        const response = await fetch('/api/chat/health');
+        const data = await response.json();
+        
+        const statusEl = document.getElementById('chromaStatus');
+        if (data.status === 'ok' && data.search_available) {
+            statusEl.innerHTML = '<i class="fas fa-database"></i> Chroma ✓';
+            statusEl.className = 'badge bg-success';
+        } else {
+            statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Chroma Offline';
+            statusEl.className = 'badge bg-warning';
+        }
+    } catch (error) {
+        console.error('Error checking Chroma health:', error);
+    }
+}
 
 // Load suggested questions
 async function loadSuggestedQuestions() {
@@ -814,8 +838,14 @@ async function clearChatHistory() {
     }
     
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const response = await fetch('/api/chat/history/clear', {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
         });
         const data = await response.json();
         
@@ -829,6 +859,8 @@ async function clearChatHistory() {
                 </div>
             `;
             alert('Riwayat chat telah dihapus');
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
         alert('Gagal menghapus riwayat: ' + error.message);
